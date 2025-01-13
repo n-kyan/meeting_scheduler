@@ -1,66 +1,79 @@
-# index.py
 import streamlit as st
 from datetime import datetime, timedelta
-from page_init import page_init
 from calendar_source import NylasCalendar
 
-def main():
-    c1, c2 = page_init()
-    calendar = NylasCalendar()
+st.title("Calendar Test App")
 
-    with c1:
-        st.header("Schedule a Coffee Chat")
-        
-        # Date selection
-        selected_date = st.date_input(
-            "Select a date",
-            min_value=datetime.now().date(),
-            max_value=datetime.now().date() + timedelta(days=30)
-        )
+# Initialize calendar
+calendar = NylasCalendar()
 
-        # Get available slots for selected date
-        available_slots = calendar.get_available_slots(selected_date)
-        
-        if not available_slots:
-            st.warning("No available slots for this date. Please select another date.")
-        else:
-            # Create time slots selection
-            time_options = [f"{slot['start']} - {slot['end']}" for slot in available_slots]
-            selected_time_str = st.selectbox("Select a time", time_options)
+# Date selection
+selected_date = st.date_input(
+    "Select a date",
+    min_value=datetime.now().date(),
+    value=datetime.now().date()
+)
+
+# Convert to datetime for our calendar functions
+date = datetime.combine(selected_date, datetime.min.time())
+
+# Get available slots
+slots = calendar.get_available_slots(date)
+
+# Display available slots
+st.write("### Available Slots")
+
+if not slots:
+    st.warning("No available slots for this date")
+else:
+    # Create a slot selector
+    slot_options = [f"{slot['start_str']} - {slot['end_str']}" for slot in slots]
+    selected_slot_str = st.selectbox("Choose a time", slot_options)
+    
+    # Find the selected slot object
+    selected_slot = next(
+        (slot for slot in slots 
+         if f"{slot['start_str']} - {slot['end_str']}" == selected_slot_str),
+        None
+    )
+    
+    if selected_slot:
+        with st.form("schedule_form"):
+            st.write(f"Selected time: {selected_slot_str}")
             
-            # Meeting details form
-            with st.form("meeting_form"):
-                email = st.text_input("Your Email")
-                name = st.text_input("Your Name")
-                
-                submitted = st.form_submit_button("Schedule Meeting")
-                
-                if submitted:
-                    if not email or not name:
-                        st.error("Please fill in all fields")
-                    else:
-                        # Find selected slot
-                        selected_index = time_options.index(selected_time_str)
-                        selected_slot = available_slots[selected_index]
+            # Get meeting details
+            name = st.text_input("Your Name")
+            email = st.text_input("Your Email")
+            notes = st.text_area("Meeting Notes", 
+                "Let's discuss potential opportunities.")
+            
+            # Submit button
+            if st.form_submit_button("Schedule Meeting"):
+                if name and email:
+                    try:
+                        # Create the event
+                        calendar.create_event(
+                            start_time=selected_slot['start'],
+                            title=f"Meeting with {name}",
+                            description=notes,
+                            participants=[email]
+                        )
+                        st.success("✅ Meeting scheduled successfully!")
                         
-                        # Schedule the meeting
-                        start_time = datetime.fromtimestamp(selected_slot['timestamp'])
-                        
-                        try:
-                            calendar.schedule_meeting(
-                                start_time=start_time,
-                                duration_minutes=30,
-                                attendee_email=email,
-                                title=f"Coffee Chat with {name}",
-                                description="Looking forward to our conversation!"
-                            )
-                            st.success("Meeting scheduled successfully! You'll receive a calendar invite shortly.")
-                        except Exception as e:
-                            st.error(f"Failed to schedule meeting: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Error scheduling meeting: {str(e)}")
+                else:
+                    st.warning("Please fill in all required fields.")
 
-    with c2:
-        st.header("About Me")
-        # Add your personal information and any other relevant details here
-
-if __name__ == "__main__":
-    main()
+# Add a section to show calendar details
+if st.checkbox("Show Calendar Details"):
+    st.write("### Calendar Info")
+    st.write("Today's busy times:")
+    busy_times = calendar.get_busy_times(date)
+    
+    if busy_times:
+        for time in busy_times:
+            st.write(f"- {time['start'].strftime('%I:%M %p')} - "
+                    f"{time['end'].strftime('%I:%M %p')}")
+    else:
+        st.write("No busy times found for today")
