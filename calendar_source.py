@@ -168,6 +168,8 @@ class NylasCalendar:
           month=date.month,
           day=date.day,
       ).astimezone(ZoneInfo(timezone))  # Convert to specified timezone
+
+      st.write(start_time)
       
       end_time = datetime.strptime(end_str, "%I:%M %p").replace(
           year=date.year,
