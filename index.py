@@ -16,7 +16,7 @@ def main():
                 - Email: kyan.nelson@colorado.edu
                 - LinkedIn: https://www.linkedin.com/in/kyan-nelson/                        
                 ''')
-    st.markdown(f'## {datetime.now()}')
+
   with c2:
     st.image("static/headshot.png", width=400)
 
