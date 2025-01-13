@@ -222,8 +222,8 @@ class NylasCalendar:
             "when": {
                 "start_time": start_time,
                 "end_time": end_time,
-                "start_timezone": timezone,
-                "end_timezone": timezone
+                #"start_timezone": timezone,
+                #"end_timezone": timezone
             },
             "participants" : [{
                 "email" : email
