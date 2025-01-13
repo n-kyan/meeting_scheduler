@@ -169,12 +169,14 @@ class NylasCalendar:
             month=date.month,
             day=date.day
         )
-        
+        st.write(start_time)
+
         end_time = datetime.strptime(end_str, "%I:%M %p").replace(
             year=date.year,
             month=date.month,
             day=date.day
         )
+        st.write(end_time)
     
         return int(start_time.timestamp()), int(end_time.timestamp())
 
