@@ -70,7 +70,7 @@ def main():
                       )
                       st.success("✅ Meeting scheduled successfully!")
 
-                      with st.popover("Meeting details"):
+                      with st.expander("Meeting details"):
                         st.markdown(f'#### *{event_details['title']}*')
                         st.markdown(f'Start: {event_details['start']}')
                         st.markdown(f'End: {event_details['end']}')
