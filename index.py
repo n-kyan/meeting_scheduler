@@ -16,6 +16,14 @@ def main():
                 - Email: kyan.nelson@colorado.edu
                 - LinkedIn: https://www.linkedin.com/in/kyan-nelson/                        
                 ''')
+    
+    with open("Official_Resume.pdf", "rb") as file:
+        btn = st.download_button(
+            label="Click Here to Download Resume",
+            data=file,
+            file_name="resume.pdf",
+            mime="application/pdf"
+        )
 
   with c2:
     st.image("static/headshot.png", width=400)
