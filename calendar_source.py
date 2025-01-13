@@ -161,21 +161,22 @@ class NylasCalendar:
     
     def timeslot_to_unix(self, timeslot: str, date: datetime, timezone: str):
       start_str, end_str = timeslot.split(" - ")
+      tz = ZoneInfo(timezone)
       
-      # Create timezone aware datetimes
+      # First create the datetime in the local timezone
       start_time = datetime.strptime(start_str, "%I:%M %p").replace(
           year=date.year,
           month=date.month,
           day=date.day,
-      ).astimezone(ZoneInfo(timezone))  # Convert to specified timezone
-
-      st.write(start_time)
+          tzinfo=tz  # Set the timezone immediately
+      )
       
       end_time = datetime.strptime(end_str, "%I:%M %p").replace(
           year=date.year,
           month=date.month,
           day=date.day,
-      ).astimezone(ZoneInfo(timezone))  # Convert to specified timezone
+          tzinfo=tz  # Set the timezone immediately
+      )
       
       # Convert to UTC timestamp
       return int(start_time.timestamp()), int(end_time.timestamp())
