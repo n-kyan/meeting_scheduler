@@ -161,6 +161,8 @@ class NylasCalendar:
     
     def timeslot_to_unix(self, timeslot:str, date:datetime):
         start_str, end_str = timeslot.split(" - ")
+        st.write(start_str)
+        st.write(end_str)
     
         start_time = datetime.strptime(start_str, "%I:%M %p").replace(
             year=date.year,
