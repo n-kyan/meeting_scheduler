@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import streamlit as st
 from nylas import Client
-import pytz
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Optional
 
 class NylasCalendar:
@@ -159,26 +159,24 @@ class NylasCalendar:
         
         return available_slots
     
-    def timeslot_to_unix(self, timeslot:str, date:datetime):
-        start_str, end_str = timeslot.split(" - ")
-        # st.write(start_str)
-        # st.write(end_str)
-    
-        start_time = datetime.strptime(start_str, "%I:%M %p").replace(
-            year=date.year,
-            month=date.month,
-            day=date.day
-        )
-        # st.write(start_time)
-
-        end_time = datetime.strptime(end_str, "%I:%M %p").replace(
-            year=date.year,
-            month=date.month,
-            day=date.day
-        )
-        # st.write(end_time)
-    
-        return int(start_time.timestamp()), int(end_time.timestamp())
+    def timeslot_to_unix(self, timeslot: str, date: datetime, timezone: str):
+      start_str, end_str = timeslot.split(" - ")
+      
+      # Create timezone aware datetimes
+      start_time = datetime.strptime(start_str, "%I:%M %p").replace(
+          year=date.year,
+          month=date.month,
+          day=date.day,
+      ).astimezone(ZoneInfo(timezone))  # Convert to specified timezone
+      
+      end_time = datetime.strptime(end_str, "%I:%M %p").replace(
+          year=date.year,
+          month=date.month,
+          day=date.day,
+      ).astimezone(ZoneInfo(timezone))  # Convert to specified timezone
+      
+      # Convert to UTC timestamp
+      return int(start_time.timestamp()), int(end_time.timestamp())
 
     def create_event(self, timeslot: str, date:datetime, timezone:str, duration_minutes: int = 30, 
                     title: str = "Meeting", description: str = "", 
@@ -210,8 +208,8 @@ class NylasCalendar:
         # Prepare request body and query params
         print(f'Timeslot: {timeslot}')
         print(type(timeslot))
-        start_time, end_time = self.timeslot_to_unix(timeslot, date)
         timezone = self.timzone_dict[timezone]
+        start_time, end_time = self.timeslot_to_unix(timeslot, date, timezone)
 
         st.write(start_time)
         st.write(end_time)
