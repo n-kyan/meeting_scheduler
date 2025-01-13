@@ -161,22 +161,22 @@ class NylasCalendar:
     
     def timeslot_to_unix(self, timeslot:str, date:datetime):
         start_str, end_str = timeslot.split(" - ")
-        st.write(start_str)
-        st.write(end_str)
+        # st.write(start_str)
+        # st.write(end_str)
     
         start_time = datetime.strptime(start_str, "%I:%M %p").replace(
             year=date.year,
             month=date.month,
             day=date.day
         )
-        st.write(start_time)
+        # st.write(start_time)
 
         end_time = datetime.strptime(end_str, "%I:%M %p").replace(
             year=date.year,
             month=date.month,
             day=date.day
         )
-        st.write(end_time)
+        # st.write(end_time)
     
         return int(start_time.timestamp()), int(end_time.timestamp())
 
@@ -212,6 +212,10 @@ class NylasCalendar:
         print(type(timeslot))
         start_time, end_time = self.timeslot_to_unix(timeslot, date)
         timezone = self.timzone_dict[timezone]
+
+        st.write(start_time)
+        st.write(end_time)
+        st.write(timezone)
 
         request_body = {
             "title": title,
