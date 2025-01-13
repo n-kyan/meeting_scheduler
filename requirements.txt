@@ -3,3 +3,4 @@ streamlit==1.30.0
 requests==2.31.0
 python-dotenv==1.0.0
 icalendar==4.0.9
+nylas==6.0.0  # Add this line
