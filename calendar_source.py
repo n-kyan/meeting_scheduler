@@ -249,10 +249,16 @@ class NylasCalendar:
         # print("Event creation response:", created_event)
         
         return {
-            'title': request_body['title'],
-            'start': datetime.fromtimestamp(request_body['when']['start_time']).strftime("%I:%M %p"),
-            'end': datetime.fromtimestamp(request_body['when']['end_time']).strftime("%I:%M %p"),
-            'location' : request_body['location']
+          'title': request_body['title'],
+          'start': datetime.fromtimestamp(
+              request_body['when']['start_time'], 
+              ZoneInfo("America/Denver")
+          ).strftime("%I:%M %p"),
+          'end': datetime.fromtimestamp(
+              request_body['when']['end_time'], 
+              ZoneInfo("America/Denver")
+          ).strftime("%I:%M %p"),
+          'location': request_body['location']
         }
 
 # Example usage
