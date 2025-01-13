@@ -1,79 +1,87 @@
 import streamlit as st
 from datetime import datetime, timedelta
 from calendar_source import NylasCalendar
+from page_init import page_init
 
-st.title("Calendar Test App")
+def main():
 
-# Initialize calendar
-calendar = NylasCalendar()
+  c1, c2 = page_init()
+  calendar = NylasCalendar()
 
-# Date selection
-selected_date = st.date_input(
-    "Select a date",
-    min_value=datetime.now().date(),
-    value=datetime.now().date()
-)
+  with c1:
+    st.markdown("# Hi, I'm Kyan Nelson")
+    st.markdown("##### *BS  Dual Emphasis in Finance and Information Management with Computer Science Integration*")
+    st.markdown('''
+                - Phone Number: 303-802-9736
+                - Email: kyan.nelson@colorado.edu
+                - LinkedIn: https://www.linkedin.com/in/kyan-nelson/                        
+                ''')
+  with c2:
+    st.image("static/headshot.png", width=400)
 
-# Convert to datetime for our calendar functions
-date = datetime.combine(selected_date, datetime.min.time())
 
-# Get available slots
-slots = calendar.get_available_slots(date)
+  st.header("Schedule a Meeting:")
+  # Date selection
+  selected_date = st.date_input(
+      "Select a potential date",
+      min_value=datetime.now().date(),
+      max_value=datetime.now().date() + timedelta(days=90),
+      value=datetime.now().date() + timedelta(days=1)
+  )
+  # Convert to datetime for our calendar functions
+  date = datetime.combine(selected_date, datetime.min.time())
 
-# Display available slots
-st.write("### Available Slots")
+  # Get available slots
+  slots = calendar.get_available_slots(date)
 
-if not slots:
-    st.warning("No available slots for this date")
-else:
-    # Create a slot selector
-    slot_options = [f"{slot['start_str']} - {slot['end_str']}" for slot in slots]
-    selected_slot_str = st.selectbox("Choose a time", slot_options)
-    
-    # Find the selected slot object
-    selected_slot = next(
-        (slot for slot in slots 
-         if f"{slot['start_str']} - {slot['end_str']}" == selected_slot_str),
-        None
-    )
-    
-    if selected_slot:
+  # Display available slots
+  st.markdown("### Time Details.")
+
+  if not slots:
+      st.error(f"Unfortunately, I have no availabilities on {selected_date.month}/{selected_date.day}.")
+  else:
+      # Create a slot selector
+      slot_options = [f"{slot['start_str']} - {slot['end_str']}" for slot in slots]
+      selected_slot = st.selectbox("Choose a time", slot_options)
+
+      timezone = st.selectbox("Choose your time zone", calendar.timzone_dict.keys())
+      
+      if selected_slot:
         with st.form("schedule_form"):
-            st.write(f"Selected time: {selected_slot_str}")
-            
-            # Get meeting details
-            name = st.text_input("Your Name")
-            email = st.text_input("Your Email")
-            notes = st.text_area("Meeting Notes", 
-                "Let's discuss potential opportunities.")
-            
-            # Submit button
-            if st.form_submit_button("Schedule Meeting"):
-                if name and email:
-                    try:
-                        # Create the event
-                        calendar.create_event(
-                            start_time=selected_slot['start'],
-                            title=f"Meeting with {name}",
-                            description=notes,
-                            participants=[email]
-                        )
-                        st.success("✅ Meeting scheduled successfully!")
-                        
-                    except Exception as e:
-                        st.error(f"Error scheduling meeting: {str(e)}")
-                else:
-                    st.warning("Please fill in all required fields.")
+          # st.write(f"Selected time: {selected_slot}")
+          
+          # Get meeting details
+          name = st.text_input("Your Name")
+          email = st.text_input("Your Email")
+          notes = st.text_area("Any notes you would like to include (Optional)")
+          
+          # Submit button
+          if st.form_submit_button("Schedule Meeting"):
+              if name and email:
+                  try:
+                      # Create the event
+                      event_details = calendar.create_event(
+                          timeslot=selected_slot,
+                          date=date,
+                          timezone=timezone,
+                          title=f"Meeting with Kyan X {name}",
+                          description=notes,
+                          email=email
+                      )
+                      st.success("✅ Meeting scheduled successfully!")
 
-# Add a section to show calendar details
-if st.checkbox("Show Calendar Details"):
-    st.write("### Calendar Info")
-    st.write("Today's busy times:")
-    busy_times = calendar.get_busy_times(date)
-    
-    if busy_times:
-        for time in busy_times:
-            st.write(f"- {time['start'].strftime('%I:%M %p')} - "
-                    f"{time['end'].strftime('%I:%M %p')}")
-    else:
-        st.write("No busy times found for today")
+                      with st.popover("Meeting details"):
+                        st.markdown(f'#### *{event_details['title']}*')
+                        st.markdown(f'Start: {event_details['start']}')
+                        st.markdown(f'End: {event_details['end']}')
+                        st.markdown(f'Zoom Link: {event_details['location']}')
+
+                  except Exception as e:
+                      st.error(f"Error scheduling meeting: {str(e)}")
+              else:
+                  st.warning("Please fill in all required fields.")
+
+
+
+if __name__ == "__main__":
+    main()

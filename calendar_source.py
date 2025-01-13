@@ -10,6 +10,48 @@ class NylasCalendar:
         self.api_key = st.secrets["NYLAS_API_KEY"]
         self.grant_id = st.secrets["NYLAS_GRANT_ID"]
         self.nylas = Client(self.api_key)
+        self.timzone_dict = {
+            # North America
+            'MST': 'America/Denver',       # Mountain Time
+            'MDT': 'America/Denver',
+            'EST': 'America/New_York',     # Eastern Time
+            'EDT': 'America/New_York',
+            'CST': 'America/Chicago',      # Central Time
+            'CDT': 'America/Chicago',
+            'PST': 'America/Los_Angeles',  # Pacific Time
+            'PDT': 'America/Los_Angeles',
+            'AKST': 'America/Anchorage',   # Alaska Time
+            'AKDT': 'America/Anchorage',
+            'HST': 'Pacific/Honolulu',     # Hawaii Time
+            
+            # Europe
+            'GMT': 'GMT',                  # Greenwich Mean Time
+            'UTC': 'UTC',                  # Coordinated Universal Time
+            'WET': 'Europe/London',        # Western European Time
+            'WEST': 'Europe/London',
+            'CET': 'Europe/Paris',         # Central European Time
+            'CEST': 'Europe/Paris',
+            'EET': 'Europe/Athens',        # Eastern European Time
+            'EEST': 'Europe/Athens',
+            
+            # Asia/Pacific
+            'IST': 'Asia/Kolkata',         # Indian Standard Time
+            'JST': 'Asia/Tokyo',           # Japan Standard Time
+            'CST_CHINA': 'Asia/Shanghai',  # China Standard Time
+            'HKT': 'Asia/Hong_Kong',       # Hong Kong Time
+            'SGT': 'Asia/Singapore',       # Singapore Time
+            'AEST': 'Australia/Sydney',    # Australian Eastern Time
+            'AEDT': 'Australia/Sydney',
+            'AWST': 'Australia/Perth',     # Australian Western Time
+            
+            # Other Regions
+            'NZST': 'Pacific/Auckland',    # New Zealand Time
+            'NZDT': 'Pacific/Auckland',
+            'BST': 'Europe/London',        # British Summer Time
+            'WAT': 'Africa/Lagos',         # West Africa Time
+            'CAT': 'Africa/Maputo',        # Central Africa Time
+            'EAT': 'Africa/Nairobi',       # East Africa Time
+        }
 
     def get_busy_times(self, date: datetime, calendar_id: Optional[str] = None) -> List[Dict]:
         """
@@ -116,15 +158,33 @@ class NylasCalendar:
             current_time += timedelta(minutes=duration_minutes)
         
         return available_slots
+    
+    def timeslot_to_unix(self, timeslot:str, date:datetime):
+        start_str, end_str = timeslot.split(" - ")
+    
+        start_time = datetime.strptime(start_str, "%I:%M %p").replace(
+            year=date.year,
+            month=date.month,
+            day=date.day
+        )
+        
+        end_time = datetime.strptime(end_str, "%I:%M %p").replace(
+            year=date.year,
+            month=date.month,
+            day=date.day
+        )
+    
+        return int(start_time.timestamp()), int(end_time.timestamp())
 
-    def create_event(self, start_time: datetime, duration_minutes: int = 30, 
+    def create_event(self, timeslot: str, date:datetime, timezone:str, duration_minutes: int = 30, 
                     title: str = "Meeting", description: str = "", 
-                    participants: List[str] = None) -> Dict:
+                    email: str = None) -> Dict:
         """
         Create a new calendar event
         
         Args:
-            start_time (datetime): Start time of the event
+            timeslot (str): selected timeslot
+            timezone (str): timezone abreviation
             duration_minutes (int): Duration of the event in minutes
             title (str): Event title
             description (str): Event description
@@ -133,7 +193,7 @@ class NylasCalendar:
         Returns:
             Dict with event details
         """
-        end_time = start_time + timedelta(minutes=duration_minutes)
+        # end_time = start_time + timedelta(minutes=duration_minutes)
         
         # Get primary calendar
         calendars = self.nylas.calendars.list(self.grant_id)
@@ -144,19 +204,26 @@ class NylasCalendar:
             raise ValueError("No writable calendar found")
             
         # Prepare request body and query params
+        print(f'Timeslot: {timeslot}')
+        print(type(timeslot))
+        start_time, end_time = self.timeslot_to_unix(timeslot, date)
+        timezone = self.timzone_dict[timezone]
+
         request_body = {
             "title": title,
             "description": description,
+            "location" : "https://cuboulder.zoom.us/u/awb8m7zVz",
             "when": {
-                "start_time": int(start_time.timestamp()),
-                "end_time": int(end_time.timestamp())
+                "start_time": start_time,
+                "end_time": end_time,
+                "start_timezone": timezone,
+                "end_timezone": timezone
             },
+            "participants" : [{
+                "email" : email
+            }],
             "busy": True
         }
-        
-        if participants:
-            request_body["participants"] = [{"email": email} for email in participants]
-            request_body["notify_participants"] = "true"
         
         query_params = {
             "calendar_id": primary_calendar.id
@@ -165,16 +232,17 @@ class NylasCalendar:
         created_event = self.nylas.events.create(
             self.grant_id,
             request_body=request_body,
-            query_params=query_params
+            query_params=query_params,
         )
         
         # Print response for debugging
-        print("Event creation response:", created_event)
+        # print("Event creation response:", created_event)
         
         return {
             'title': request_body['title'],
-            'start': datetime.fromtimestamp(request_body['when']['start_time']),
-            'end': datetime.fromtimestamp(request_body['when']['end_time'])
+            'start': datetime.fromtimestamp(request_body['when']['start_time']).strftime("%I:%M %p"),
+            'end': datetime.fromtimestamp(request_body['when']['end_time']).strftime("%I:%M %p"),
+            'location' : request_body['location']
         }
 
 # Example usage
