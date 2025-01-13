@@ -160,6 +160,7 @@ class NylasCalendar:
         return available_slots
     
     def timeslot_to_unix(self, timeslot: str, date: datetime, timezone: str):
+      st.write(timeslot)
       start_str, end_str = timeslot.split(" - ")
       tz = ZoneInfo(timezone)
       
@@ -214,9 +215,9 @@ class NylasCalendar:
         timezone = self.timzone_dict[timezone]
         start_time, end_time = self.timeslot_to_unix(timeslot, date, timezone)
 
-        st.write(start_time)
-        st.write(end_time)
-        st.write(timezone)
+        # st.write(start_time)
+        # st.write(end_time)
+        # st.write(timezone)
 
         request_body = {
             "title": title,
