@@ -66,7 +66,7 @@ def main():
         )
 
   with c2:
-    st.image("static/headshot.png", use_container_width=True)
+    st.image("static/headshot.png", use_column_width=True)
 #################
 
 
