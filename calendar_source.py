@@ -64,8 +64,12 @@ class NylasCalendar:
         Returns:
             List of busy time slots with start and end times
         """
-        start_of_day = datetime.combine(date, datetime.min.time())
-        end_of_day = datetime.combine(date, datetime.max.time())
+
+        mt_tz = ZoneInfo("America/Denver")
+    
+        # Create start and end of day in Mountain Time
+        start_of_day = datetime.combine(date, datetime.min.time()).replace(tzinfo=mt_tz)
+        end_of_day = datetime.combine(date, datetime.max.time()).replace(tzinfo=mt_tz)
         
         busy_times = []
         calendars = self.nylas.calendars.list(self.grant_id)
@@ -88,12 +92,12 @@ class NylasCalendar:
                     
                 # Handle timespan events
                 if hasattr(event.when, 'start_time'):
-                    event_start = datetime.fromtimestamp(event.when.start_time)
-                    event_end = datetime.fromtimestamp(event.when.end_time)
+                  event_start = datetime.fromtimestamp(event.when.start_time, tz=mt_tz)
+                  event_end = datetime.fromtimestamp(event.when.end_time, tz=mt_tz)
                 # Handle datespan events
                 elif hasattr(event.when, 'start_date'):
-                    event_start = datetime.strptime(event.when.start_date, '%Y-%m-%d')
-                    event_end = datetime.strptime(event.when.end_date, '%Y-%m-%d')
+                  event_start = datetime.strptime(event.when.start_date, '%Y-%m-%d').replace(tzinfo=mt_tz)
+                  event_end = datetime.strptime(event.when.end_date, '%Y-%m-%d').replace(tzinfo=mt_tz)
                 else:
                     continue
 
@@ -107,57 +111,62 @@ class NylasCalendar:
         return sorted(busy_times, key=lambda x: x['start'])
 
     def get_available_slots(self, date: datetime, duration_minutes: int = 30,
-                          start_hour: int = 9, end_hour: int = 17) -> List[Dict]:
-        """
-        Get available time slots for a specific date
-        
-        Args:
-            date (datetime): The date to check
-            duration_minutes (int): Length of each slot in minutes
-            start_hour (int): Hour to start checking from (24-hour format)
-            end_hour (int): Hour to end checking at (24-hour format)
-            
-        Returns:
-            List of available time slots
-        """
-        # Don't show availability for past dates
-        if date.date() < datetime.now().date():
-            return []
-            
-        # Don't show availability for weekends
-        if date.weekday() >= 5:
-            return []
+                        start_hour: int = 8, end_hour: int = 19) -> List[Dict]:
+      """
+      Get available time slots for a specific date in Mountain Time
+      """
+      mt_tz = ZoneInfo("America/Denver")
+      now = datetime.now(mt_tz)
+      
+      # Don't show availability for past dates
+      if date.date() < now.date():
+          return []
+          
+      # Don't show availability for weekends
+      if date.weekday() >= 5:
+          return []
 
-        busy_times = self.get_busy_times(date)
-        
-        # Set up the time slots to check
-        start_of_day = datetime.combine(date, datetime.min.time().replace(hour=start_hour))
-        end_of_day = datetime.combine(date, datetime.min.time().replace(hour=end_hour))
-        
-        available_slots = []
-        current_time = start_of_day
-        
-        while current_time + timedelta(minutes=duration_minutes) <= end_of_day:
-            slot_end = current_time + timedelta(minutes=duration_minutes)
-            is_available = True
-            
-            # Check if slot conflicts with any busy times
-            for busy in busy_times:
-                if not (slot_end <= busy['start'] or current_time >= busy['end']):
-                    is_available = False
-                    break
-            
-            if is_available:
-                available_slots.append({
-                    'start': current_time,
-                    'end': slot_end,
-                    'start_str': current_time.strftime('%I:%M %p'),
-                    'end_str': slot_end.strftime('%I:%M %p'),
-                })
-            
-            current_time += timedelta(minutes=duration_minutes)
-        
-        return available_slots
+      busy_times = self.get_busy_times(date)
+      
+      # Set up the time slots to check in Mountain Time
+      start_of_day = datetime.combine(
+          date,
+          datetime.min.time().replace(hour=start_hour)
+      ).replace(tzinfo=mt_tz)
+      
+      end_of_day = datetime.combine(
+          date,
+          datetime.min.time().replace(hour=end_hour)
+      ).replace(tzinfo=mt_tz)
+      
+      available_slots = []
+      current_time = start_of_day
+      
+      while current_time + timedelta(minutes=duration_minutes) <= end_of_day:
+          slot_end = current_time + timedelta(minutes=duration_minutes)
+          is_available = True
+          
+          # Check if slot conflicts with any busy times
+          for busy in busy_times:
+              if not (slot_end <= busy['start'] or current_time >= busy['end']):
+                  is_available = False
+                  break
+          
+          # Don't show past time slots for today
+          if date.date() == now.date() and current_time < now:
+              is_available = False
+          
+          if is_available:
+              available_slots.append({
+                  'start': current_time,
+                  'end': slot_end,
+                  'start_str': current_time.strftime('%I:%M %p'),
+                  'end_str': slot_end.strftime('%I:%M %p'),
+              })
+          
+          current_time += timedelta(minutes=duration_minutes)
+      
+      return available_slots
     
     def timeslot_to_unix(self, timeslot: str, date: datetime, timezone: str):
       start_str, end_str = timeslot.split(" - ")
